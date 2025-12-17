@@ -1,0 +1,26 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body { font-feature-settings: "cv11", "ss01"; }
+  button, input, textarea, select { -webkit-tap-highlight-color: transparent; }
+  ::selection { background: #e5e5e5; color: #171717; }
+}
+
+@layer utilities {
+  .qr-preview-grid {
+    background-color: #fff;
+    background-image: radial-gradient(#dedede 0.65px, transparent 0.65px);
+    background-size: 5px 5px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
