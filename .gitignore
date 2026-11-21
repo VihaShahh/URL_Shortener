@@ -16,6 +16,8 @@ VERCEL.md
 DEMO_SHOWCASE.md
 VALIDATION.md
 docs/images/demo-showcase-*
+qr_link_platform_business_requirements.md
+qr_link_platform_technical_requirements.md
 
 # BEGIN shared local-artifact rules
 openspec/

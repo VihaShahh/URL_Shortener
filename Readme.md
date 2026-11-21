@@ -1,9 +1,9 @@
 # URL Shortner
 
-A production-minded fullstack URL shortener built with:
+An npm workspace monorepo for short links and free static QR codes:
 
-- Backend: Node.js, Express, TypeScript, Prisma, PostgreSQL.
-- Frontend: Next.js, React, TypeScript, Tailwind CSS.
+- `server/`: Node.js, Express, TypeScript, Prisma, PostgreSQL.
+- `client/`: Next.js, React, TypeScript, Tailwind CSS.
 - Runtime: Docker Compose with PostgreSQL.
 
 The backend is the most complete part right now. It supports short-link creation, redirects, click analytics, admin-key protected analytics access, request validation, rate limiting, Docker runtime configuration, and Prisma migrations.
@@ -32,55 +32,86 @@ The backend is the most complete part right now. It supports short-link creation
 - Use bounded graceful shutdown for container-friendly deploys.
 - Serve `robots.txt` to discourage indexing short-link paths.
 
-## Backend Quickstart
+## Try It With Docker
 
-Use Node 20:
+From the repository root:
 
 ```sh
-nvm use 20
+docker compose up --build --wait
 ```
 
-Install backend dependencies:
+Open:
+
+- App and short-link creation: http://localhost:3000
+- Free QR generator: http://localhost:3000/qr
+- API readiness: http://localhost:5000/ready
+- PostgreSQL for local tools: localhost:5433 (`postgres` / `postgres`, database `url_shortner`)
+
+Compose waits for PostgreSQL, applies Prisma migrations, and starts the server
+and client with health checks. The development defaults are bound to localhost.
+No separate Node installation or environment file is needed for this route.
+
+Try a URL in the QR generator, download PNG/SVG, and scan the result. On the home
+page, create a short link, open it, then use its analytics page to change metadata
+or disable the link. Static QR generation is free and requires no account;
+accounts, paid editing, and billing are later milestones.
 
 ```sh
-cd Backend
-npm install
+docker compose logs -f client server
+docker compose down
 ```
 
-Create an environment file:
+Stopping keeps PostgreSQL data in the existing `postgres-data` volume. To change
+ports or browser-facing origins, copy `.env.example` to `.env`, edit the settings,
+and rebuild. `PUBLIC_API_URL` is compiled into the client and is also used in
+returned short URLs; use a browser-reachable address, not Docker's `server`
+hostname. Update `PUBLIC_WEB_URL` with the client port so CORS remains consistent.
+
+## Workspace Development
+
+Use Node.js 24 (`nvm use`) and install once from the repository root:
+
+For native development, stop any running client/server containers first with
+`docker compose stop client server`; keep PostgreSQL running.
 
 ```sh
-cp .env.example .env
-```
-
-Start PostgreSQL from the repo root:
-
-```sh
-docker compose up postgres
-```
-
-Run Prisma migrations:
-
-```sh
-cd Backend
-npm run prisma:deploy
-```
-
-Start the backend:
-
-```sh
+npm ci
+npm run db:generate
+cp -n server/.env.example server/.env
+docker compose up -d --wait postgres
+npm run db:migrate
 npm run dev
 ```
 
-## Docker Runtime
+`npm run dev` starts both workspaces. `npm run dev:client` and
+`npm run dev:server` run them separately. The root `.env` controls Compose;
+`server/.env` configures a server running outside Docker. Its sample database URL
+uses the Compose host port, 5433.
 
-From the repo root:
+There is one root `package-lock.json`. Add dependencies with
+`npm install PACKAGE --workspace client` or `--workspace server`.
+
+## Checks
 
 ```sh
-docker compose up --build
+npm test
+npm run typecheck
+npm run build
+npx playwright install chromium
+npm run test:browser
 ```
 
-The backend service waits for PostgreSQL, deploys Prisma migrations, and then starts the Node.js server. The frontend service starts the Next.js standalone server on port `3000`.
+With the Docker stack running, this checks real database/API behavior and the QR
+page without contacting a destination website:
+
+```sh
+npm run test:stack
+```
+
+It creates and then disables one local test link, retaining it in the database.
+Use `QR_BROWSER_CHANNEL=chrome npm run test:browser` to use an installed Google
+Chrome instead of downloading Chromium. The browser suite also verifies QR
+exports and offline generation independently of the backend.
 
 ## Important API Routes
 
@@ -100,7 +131,7 @@ The backend service waits for PostgreSQL, deploys Prisma migrations, and then st
 
 ## Documentation
 
-Read [understanding.md](./understanding.md) for detailed explanations of the architecture, backend choices, database design, security rules, and API behavior.
+Read [understanding.md](docs/understanding.md) for detailed explanations of the architecture, backend choices, database design, security rules, and API behavior.
 
 The API contract is documented in [docs/openapi.yaml](./docs/openapi.yaml).
 
@@ -110,4 +141,8 @@ Backend operations guidance is available in [docs/backend-runbook.md](./docs/bac
 
 Backend stack rationale is recorded in [docs/decisions/001-backend-stack.md](./docs/decisions/001-backend-stack.md).
 
-Frontend-specific notes are available in [Frontend/README.md](./Frontend/README.md).
+Frontend-specific notes are available in [client/README.md](./client/README.md).
+
+The current workspace/container boundaries are documented in [docs/architecture.md](./docs/architecture.md).
+
+Static QR payload and export contracts are documented in [docs/qr-generation.md](./docs/qr-generation.md).
